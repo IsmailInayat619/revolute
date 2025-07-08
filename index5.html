@@ -1,0 +1,202 @@
+```html
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Revolut Alpha Prototype</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; }
+    header { background: #2A2E43; color: #fff; padding: 1rem; display: flex; align-items: center; }
+    header h1 { margin: 0; font-size: 1.2rem; flex: 1; }
+    nav button { margin-left: .5rem; padding: .5rem 1rem; border: none; background: #4E5D78; color: #fff; cursor: pointer; }
+    nav button.active { background: #1ABC9C; }
+    section { display: none; padding: 1rem; }
+    section.active { display: block; }
+    .card { border: 1px solid #ddd; padding: 1rem; margin: .5rem 0; border-radius: 4px; }
+    .flex { display: flex; gap: 1rem; }
+    .flex .card { flex: 1; }
+    .btn { padding: .5rem 1rem; background: #1ABC9C; color: #fff; border: none; cursor: pointer; border-radius: 4px; }
+    .chart-placeholder { height: 200px; border: 1px dashed #999; display: flex; align-items: center; justify-content: center; color: #999; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Revolut Alpha Prototype</h1>
+    <nav>
+      <button data-target="onboarding" class="active">Onboarding</button>
+      <button data-target="dashboard">Dashboard</button>
+      <button data-target="exchange">Exchange</button>
+      <button data-target="analytics">Analytics</button>
+      <button data-target="transfer">Peer Transfer</button>
+    </nav>
+  </header>
+
+  <!-- Onboarding / KYC -->
+  <section id="onboarding" class="active">
+    <h2>Onboarding &amp; KYC</h2>
+    <div class="card">
+      <p><strong>Step 1:</strong> Enter your email and password</p>
+      <p><strong>Step 2:</strong> Upload ID via camera</p>
+      <input type="file" accept="image/*" capture="environment" />
+      <p><button class="btn" onclick="alert('Mock verification success!'); document.getElementById('kyc-status').textContent='Verified';">Simulate Verification</button></p>
+      <p><em>Status:</em> <span id="kyc-status">Pending</span></p>
+    </div>
+  </section>
+
+  <!-- Dashboard -->
+  <section id="dashboard">
+    <h2>Home Dashboard</h2>
+    <div class="flex" id="balances-container">
+      <!-- Balance cards inserted here -->
+    </div>
+    <h3>Live FX Rates</h3>
+    <ul id="rates-list">
+      <!-- Rate items inserted here -->
+    </ul>
+    <p><button class="btn" onclick="showSection('exchange')">Convert Currency</button></p>
+  </section>
+
+  <!-- Exchange Flow -->
+  <section id="exchange">
+    <h2>Currency Exchange</h2>
+    <div class="card">
+      <label>From:
+        <select id="from-currency"></select>
+      </label>
+      <label>To:
+        <select id="to-currency"></select>
+      </label>
+      <label>Amount:
+        <input type="number" id="exchange-amount" value="100" />
+      </label>
+      <p><button class="btn" onclick="previewRate()">Preview Rate</button></p>
+      <div id="rate-preview"></div>
+      <p><button class="btn" onclick="confirmExchange()">Swipe to Confirm</button></p>
+    </div>
+  </section>
+
+  <!-- Analytics -->
+  <section id="analytics">
+    <h2>Spend Analytics</h2>
+    <div class="chart-placeholder">[Bar chart placeholder]</div>
+    <div class="chart-placeholder">[Map chart placeholder]</div>
+    <p>
+      <label>
+        <input type="checkbox" id="alert-checkbox" />
+        Notify me if spend &gt; €500/week
+      </label>
+    </p>
+  </section>
+
+  <!-- Peer Transfer -->
+  <section id="transfer">
+    <h2>Peer Transfer</h2>
+    <div class="card">
+      <label>Contact:
+        <input type="text" id="contact-search" placeholder="Search by name or phone" />
+      </label>
+      <label>Amount:
+        <input type="number" id="transfer-amount" value="50" />
+      </label>
+      <label>Message (optional):
+        <input type="text" id="transfer-message" />
+      </label>
+      <p><button class="btn" onclick="sendTransfer()">Send</button></p>
+      <div id="transfer-status"></div>
+    </div>
+  </section>
+
+  <script>
+    let mockData;
+
+    // Load mock data on page load
+    fetch('data/mock.json')
+      .then(res => res.json())
+      .then(data => {
+        mockData = data;
+        renderDashboard();
+        populateExchangeForm();
+      })
+      .catch(console.error);
+
+    // Navigation
+    document.querySelectorAll('nav button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        showSection(btn.dataset.target);
+      });
+    });
+
+    function showSection(id) {
+      document.querySelectorAll('section').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    // Dashboard rendering
+    function renderDashboard() {
+      const balCont = document.getElementById('balances-container');
+      const ratesList = document.getElementById('rates-list');
+
+      mockData.balances.forEach(b => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `<h3>${b.currency}</h3><p>${b.amount.toFixed(2)}</p>`;
+        balCont.appendChild(card);
+      });
+
+      mockData.rates.forEach(r => {
+        const li = document.createElement('li');
+        li.textContent = `${r.pair}: ${r.rate}`;
+        ratesList.appendChild(li);
+      });
+    }
+
+    // Exchange form setup
+    function populateExchangeForm() {
+      const fromSelect = document.getElementById('from-currency');
+      const toSelect   = document.getElementById('to-currency');
+      mockData.balances.forEach(b => {
+        [fromSelect, toSelect].forEach(sel => {
+          const opt = document.createElement('option');
+          opt.value = b.currency;
+          opt.textContent = b.currency;
+          sel.appendChild(opt);
+        });
+      });
+    }
+
+    function previewRate() {
+      const from = document.getElementById('from-currency').value;
+      const to   = document.getElementById('to-currency').value;
+      const amt  = parseFloat(document.getElementById('exchange-amount').value);
+      const rateObj = mockData.rates.find(r => r.pair === `${from}/${to}`);
+      const previewEl = document.getElementById('rate-preview');
+
+      if (rateObj) {
+        const converted = (amt * rateObj.rate).toFixed(2);
+        previewEl.textContent = `Rate: ${rateObj.rate}, You get: ${converted} ${to}`;
+      } else {
+        previewEl.textContent = 'Rate not found for that pair.';
+      }
+    }
+
+    function confirmExchange() {
+      alert('Mock exchange confirmed!');
+      showSection('dashboard');
+    }
+
+    // Peer Transfer
+    function sendTransfer() {
+      const contact = document.getElementById('contact-search').value;
+      const amt     = document.getElementById('transfer-amount').value;
+      document.getElementById('transfer-status')
+        .textContent = `Sent €${amt} to ${contact}.`;
+    }
+  </script>
+</body>
+</html>
+```
